@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,11 +15,11 @@ namespace StringFormatter
 		public string Format( string value, object target )
 		{
 			int checkSum = 0;
-			bool fieldName = false;
+			bool isMemberName = false;
 			bool displaying = false;
-			StringBuilder fieldNameBuilder = new();
+			StringBuilder memberNameBuilder = new();
 			StringBuilder resultBuilder = new();
-			//List<int> arr = new List<int>();
+	
 			for ( int i = 0; i < value.Length; i++ )
 			{
 				if ( !displaying )
@@ -26,38 +27,26 @@ namespace StringFormatter
 					if ( value[ i ] == '{' && ( i == value.Length - 1 || !( displaying = i + 1 < value.Length && value[ i + 1 ] == '{' ) ) )
 					{
 						++checkSum;
-						fieldName = true;
+						isMemberName = true;
 						continue;
 					}
 					else if ( value[ i ] == '}' && ( i == value.Length - 1 || !( displaying = i + 1 < value.Length && value[ i + 1 ] == '}' ) ) )
 					{
-						fieldName = false;
+						isMemberName = false;
 						--checkSum;
 						if ( checkSum != 0 )
 							throw new ArgumentException( "\"}\" does not match for \"{\"" );
 
-						object? memberValue;
-						FieldInfo? fi = target.GetType().GetField( fieldNameBuilder.ToString() );
-						if ( fi != null )
-							memberValue = fi.GetValue( target );
-						else
-						{
-							PropertyInfo? pi = target.GetType().GetProperty( fieldNameBuilder.ToString() );
-							if ( pi != null )
-								memberValue = pi.GetValue( target );
-							else
-								throw new ArgumentException( "There is not such field or property \"" + fieldNameBuilder.ToString() + "\" at " + target.GetType().Name );
-						}
-
+						object? memberValue = GetObjectMemberValue( memberNameBuilder.ToString(), target );
 
 						resultBuilder.Append( memberValue );
-						fieldNameBuilder.Clear();
+						memberNameBuilder.Clear();
 						continue;
 					}
 
-					if ( fieldName )
+					if ( isMemberName )
 					{
-						fieldNameBuilder.Append( value[ i ] );
+						memberNameBuilder.Append( value[ i ] );
 					}
 					else
 					{
@@ -66,36 +55,55 @@ namespace StringFormatter
 				}
 				else
 				{
-					resultBuilder.Append( value[ i ] );
+		//			resultBuilder.Append( value[ i ] );
 					displaying = false;
 				}
 			}
 			if ( checkSum != 0 )
 				throw new ArgumentException( "\"}\" does not match for \"{\"" );
-			
-
-			
+						
 			return resultBuilder.ToString();
 		}
 
-
-		private bool IsDisplayed(string s, int index)
+		private object? GetObjectMemberValue(string memberName, object target)
 		{
-			if (s[index] == '{')
+			object? memberValue;
+			string trueMemberName = memberName;
+			string[] collectionMemberName = new string[ 2 ];
+			bool isCollectionMemberName;
+			
+			
+			if ( isCollectionMemberName = memberName.Contains('['))
 			{
-				if ( index + 1 < s.Length )
-					return s[ index + 1 ] == '{';
-				else
-					return false;
+				collectionMemberName = memberName.Split( '[', ']' );
+				trueMemberName = collectionMemberName[ 0 ];
 			}
-			else if (s[index] == '}')
+
+			
+
+
+			FieldInfo? fi = target.GetType().GetField( trueMemberName );
+			if ( fi != null )
+				memberValue = fi.GetValue( target );
+			else
 			{
-				if ( index + 1 < s.Length )
-					return s[ index + 1 ] == '}';
+				PropertyInfo? pi = target.GetType().GetProperty( trueMemberName );
+				if ( pi != null )
+					memberValue = pi.GetValue( target );
 				else
-					return false;
+					throw new ArgumentException( "There is not such field or property \"" + trueMemberName + "\" at " + target.GetType().Name );
 			}
-			return false;
+
+			if (isCollectionMemberName)
+			{
+				int index = int.Parse( collectionMemberName[ 1 ] );
+				var t = memberValue.GetType();
+				
+				memberValue = ( (IList)memberValue )[ index ];
+			}
+
+			return memberValue;
 		}
+
 	}
 }
