@@ -114,7 +114,17 @@ namespace StringFormatter
 				var indexExpr = Expression.Parameter( typeof( int ) );
 				var obj = Expression.Parameter( typeof( object ) );
 				var fieldOrProp = Expression.PropertyOrField( Expression.TypeAs( obj, target.GetType() ), memberName );
-				var collectionItem = Expression.ArrayAccess( fieldOrProp, indexExpr );
+				Expression? fieldOrPropArray;
+				try
+				{
+					 fieldOrPropArray = Expression.Call( fieldOrProp, "ToArray", null, null );
+				}
+				catch (InvalidOperationException )
+				{
+					fieldOrPropArray = fieldOrProp;
+				}
+
+				var collectionItem = Expression.ArrayAccess( fieldOrPropArray, indexExpr );
 				Expression<Func<object, int, string>> expression = Expression.Lambda<Func<object, int, string>>( Expression.Call( collectionItem, "ToString", null, null ), new ParameterExpression[] { obj, indexExpr } );
 
 				_collectionCache.TryAdd( cacheKey, expression.Compile() );

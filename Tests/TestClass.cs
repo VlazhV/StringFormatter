@@ -16,6 +16,8 @@ namespace Tests
 		public string Bar { get;  } = "Bar";
 		public List<int> collection = new List<int>(){ 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
+		public int[] array = new int[] { 1, 2, 3, 4, 5, 6 };
+
 		public ConcurrentBag<int> concCollection = new ConcurrentBag<int> { 10, 11, 12, 13, 14, 15, 16 };
 
 		public TestClass(int f, string n, string b, List<int> c1, int x)

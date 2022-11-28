@@ -78,34 +78,37 @@ namespace Tests
 			}
 		}
 
-		//[TestMethod]
-		//public void CollectionTest1()
-		//{
-		//	var testOject = new TestClass();
-		//	var stringFormatter = StringFormatter.StringFormatter.Shared;
-		//	string result = stringFormatter.Format("collection[1] = {collection[1]}", testOject);
-		//	Assert.IsTrue( result.Equals( "collection[1] = 2" ) );
-		//	Console.WriteLine( result );
-		//}
+		[TestMethod]
+		public void CollectionTest1()
+		{
+			var testOject = new TestClass();
+			var stringFormatter = StringFormatter.StringFormatter.Shared;
+			string result = stringFormatter.Format( "collection[1] = {collection[1]}", testOject );
+			Assert.IsTrue( result.Equals( "collection[1] = 2" ) );
+			Console.WriteLine( result );
+		}
 
-		//[TestMethod]
-		//public void CollectionTest2()
-		//{
-		//	var testOject = new TestClass();			
-		//	var stringFormatter = StringFormatter.StringFormatter.Shared;
-		//	string result;
-		//	try
-		//	{
-		//		result = stringFormatter.Format( "ConcurrentCollection[1] = {concCollection[1]}", testOject );
-		//		Assert.Fail();
-		//	}
-		//	catch ( ArgumentException e)
-		//	{
-		//		Assert.IsTrue( e.Message.Equals( "Argument must be array (Parameter 'array')" ) );
-		//	}						
-		//}
+		[TestMethod]
+		public void ArrayTest()
+		{
+			var testOject = new TestClass();
+			var stringFormatter = StringFormatter.StringFormatter.Shared;
+			string result = stringFormatter.Format( "{{array[5]}} = {array[5]}", testOject );
+			Assert.IsTrue( result.Equals( "{array[5]} = 6" ) );
+			Console.WriteLine( result );
+		}
 
-		
+		[TestMethod]
+		public void CollectionTest2()
+		{
+			var testOject = new TestClass();
+			var stringFormatter = StringFormatter.StringFormatter.Shared;
+			string result = stringFormatter.Format( "ConcurrentCollection[2] = {concCollection[2]}", testOject );
+			Assert.IsTrue( result.Equals( "ConcurrentCollection[2] = 14" ) );
+			Console.WriteLine( result );
+		}
+
+
 
 
 		[TestMethod]
@@ -116,6 +119,18 @@ namespace Tests
 			Assert.IsTrue( result.Equals( "_x = 42" ) );
 			Console.Write( result );
 
+		}
+
+		[TestMethod]
+		public void TestCache()
+		{
+			var testObject = new TestClass();
+			var stringFormatter = StringFormatter.StringFormatter.Shared;
+			var result = stringFormatter.Format( "field = {field} name = {name} Bar = {Bar}", testObject );
+			Assert.IsTrue( result.Equals( "field = 5 name = Foo Bar = Bar" ) );
+			result = stringFormatter.Format( "field = {field} name = {name} Bar = {Bar}", testObject );
+			Assert.IsTrue( result.Equals( "field = 5 name = Foo Bar = Bar" ) );
+			Console.WriteLine( result );
 		}
 
 
