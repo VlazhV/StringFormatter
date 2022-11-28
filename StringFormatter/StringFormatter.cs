@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +13,9 @@ namespace StringFormatter
 	public class StringFormatter : IStringFormatter
 	{
 		public static readonly StringFormatter Shared = new StringFormatter();
+
+		private ConcurrentDictionary<int, Func<object, string>> _cache = new();
+		private ConcurrentDictionary<int, Func<object, int, string>> _collectionCache = new();
 		
 		public string Format( string value, object target )
 		{
@@ -37,7 +42,7 @@ namespace StringFormatter
 						if ( checkSum != 0 )
 							throw new ArgumentException( "\"}\" does not match for \"{\"" );
 
-						object? memberValue = GetObjectMemberValue( memberNameBuilder.ToString(), target );
+						var memberValue = GetObjectMemberValue( memberNameBuilder.ToString(), target );
 
 						resultBuilder.Append( memberValue );
 						memberNameBuilder.Clear();
@@ -55,7 +60,6 @@ namespace StringFormatter
 				}
 				else
 				{
-		//			resultBuilder.Append( value[ i ] );
 					displaying = false;
 				}
 			}
@@ -65,44 +69,57 @@ namespace StringFormatter
 			return resultBuilder.ToString();
 		}
 
-		private object? GetObjectMemberValue(string memberName, object target)
+		
+
+		private string GetObjectMemberValue( string memberName, object target )
 		{
-			object? memberValue;
-			string trueMemberName = memberName;
-			string[] collectionMemberName = new string[ 2 ];
-			bool isCollectionMemberName;
-			
-			
-			if ( isCollectionMemberName = memberName.Contains('['))
+			if ( memberName.Contains( '[' ) )
 			{
-				collectionMemberName = memberName.Split( '[', ']' );
-				trueMemberName = collectionMemberName[ 0 ];
+				string[] collectionNameIndex = memberName.Split( '[', ']' );
+				return GetObjectMemberCollectionValue( collectionNameIndex[ 0 ], int.Parse( collectionNameIndex[ 1 ] ), target );
+
 			}
+			else
+				return GetObjectSimpleMemberValue( memberName, target );
+		}
 
-			
-
-
-			FieldInfo? fi = target.GetType().GetField( trueMemberName );
-			if ( fi != null )
-				memberValue = fi.GetValue( target );
+		private string GetObjectSimpleMemberValue( string memberName, object target )
+		{
+		
+			int cacheKey = memberName.GetHashCode() + target.GetHashCode();
+			if ( _cache.ContainsKey( cacheKey ) ) 
+			{
+				return _cache[ cacheKey ].Invoke( target );
+			}
 			else
 			{
-				PropertyInfo? pi = target.GetType().GetProperty( trueMemberName );
-				if ( pi != null )
-					memberValue = pi.GetValue( target );
-				else
-					throw new ArgumentException( "There is not such field or property \"" + trueMemberName + "\" at " + target.GetType().Name );
+				var obj = Expression.Parameter( typeof( object ) );
+				var fieldOrProp = Expression.PropertyOrField( Expression.TypeAs( obj, target.GetType() ), memberName );
+				Expression<Func<object, string>> expression = Expression.Lambda<Func<object, string>>( Expression.Call( fieldOrProp, "ToString", null, null ), new ParameterExpression[] { obj } );
+				_cache.TryAdd( cacheKey, expression.Compile() );
+				return expression.Compile().Invoke(target);
 			}
 
-			if (isCollectionMemberName)
+		}
+
+		private string GetObjectMemberCollectionValue(string memberName, int index, object target )
+		{
+			int cacheKey = memberName.GetHashCode() + target.GetHashCode() + index;
+			if ( _collectionCache.ContainsKey( cacheKey ) ) 
 			{
-				int index = int.Parse( collectionMemberName[ 1 ] );
-				var t = memberValue.GetType();
-				
-				memberValue = ( (IList)memberValue )[ index ];
+				return _collectionCache[ cacheKey ].Invoke( target, index );
 			}
+			else
+			{
+				var indexExpr = Expression.Parameter( typeof( int ) );
+				var obj = Expression.Parameter( typeof( object ) );
+				var fieldOrProp = Expression.PropertyOrField( Expression.TypeAs( obj, target.GetType() ), memberName );
+				var collectionItem = Expression.ArrayAccess( fieldOrProp, indexExpr );
+				Expression<Func<object, int, string>> expression = Expression.Lambda<Func<object, int, string>>( Expression.Call( collectionItem, "ToString", null, null ), new ParameterExpression[] { obj, indexExpr } );
 
-			return memberValue;
+				_collectionCache.TryAdd( cacheKey, expression.Compile() );
+				return expression.Compile().Invoke( target, index );
+			}
 		}
 
 	}

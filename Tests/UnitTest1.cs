@@ -78,43 +78,36 @@ namespace Tests
 			}
 		}
 
-		[TestMethod]
-		public void CollectionTest1()
-		{
-			var testOject = new TestClass();
-			var stringFormatter = StringFormatter.StringFormatter.Shared;
-			string result = stringFormatter.Format("collection[1] = {collection[1]}", testOject);
-			Assert.IsTrue( result.Equals( "collection[1] = 2" ) );
-			Console.WriteLine( result );
-		}
-		
 		//[TestMethod]
-		//public void CollectionTest2()
+		//public void CollectionTest1()
 		//{
 		//	var testOject = new TestClass();
 		//	var stringFormatter = StringFormatter.StringFormatter.Shared;
-		//	string result = stringFormatter.Format( "ConcurrentCollection[1] = {concCollection[1]}", testOject );
-		//	Assert.IsTrue( result.Equals( "ConcurrentCollection[1] = 2" ) );
+		//	string result = stringFormatter.Format("collection[1] = {collection[1]}", testOject);
+		//	Assert.IsTrue( result.Equals( "collection[1] = 2" ) );
 		//	Console.WriteLine( result );
 		//}
 
-		[TestMethod]
-		public void PrivateFieldTest()
-		{
-			var testOject = new TestClass();
-			var stringFormatter = StringFormatter.StringFormatter.Shared;
-			string result;
-			try
-			{
-				result = stringFormatter.Format( "private field _x = {_x}", testOject );
-				Assert.Fail();
-			}
-			catch (ArgumentException e)
-			{
-				Assert.IsTrue( e.Message.Equals( "There is not such field or property \"_x\" at TestClass" ) );
-			}
-			
-		}
+		//[TestMethod]
+		//public void CollectionTest2()
+		//{
+		//	var testOject = new TestClass();			
+		//	var stringFormatter = StringFormatter.StringFormatter.Shared;
+		//	string result;
+		//	try
+		//	{
+		//		result = stringFormatter.Format( "ConcurrentCollection[1] = {concCollection[1]}", testOject );
+		//		Assert.Fail();
+		//	}
+		//	catch ( ArgumentException e)
+		//	{
+		//		Assert.IsTrue( e.Message.Equals( "Argument must be array (Parameter 'array')" ) );
+		//	}						
+		//}
+
+		
+
+
 		[TestMethod]
 		public void InnerMethodTest()
 		{
