@@ -15,57 +15,66 @@ namespace StringFormatter
 		{
 			int checkSum = 0;
 			bool fieldName = false;
+			bool displaying = false;
 			StringBuilder fieldNameBuilder = new();
 			StringBuilder resultBuilder = new();
 			//List<int> arr = new List<int>();
-			for (int i = 0; i < value.Length; i++)
+			for ( int i = 0; i < value.Length; i++ )
 			{
-				if ( value[ i ] == '{' && i == value.Length - 1
-				 || value[ i ] == '{' && i + 1 < value.Length && value[ i + 1 ] != '{' )
+				if ( !displaying )
 				{
-					++checkSum;
-					fieldName = true;
-					continue;
-				}
-				else if ( value[ i ] == '}' && i == value.Length - 1
-							|| value[ i ] == '}' && i + 1 < value.Length && value[ i + 1 ] != '}' )
-				{
-					fieldName = false;
-					--checkSum;
-					if ( checkSum != 0 )
-						throw new ArgumentException( "\"}\" does not match for \"{\"" );
-
-					object? memberValue;
-					FieldInfo? fi = target.GetType().GetField( fieldNameBuilder.ToString() );
-					if ( fi != null )
-						memberValue = fi.GetValue(target);
-					else
+					if ( value[ i ] == '{' && ( i == value.Length - 1 || !( displaying = i + 1 < value.Length && value[ i + 1 ] == '{' ) ) )
 					{
-						PropertyInfo? pi = target.GetType().GetProperty( fieldNameBuilder.ToString() );
-						if ( pi != null )
-							memberValue = pi.GetValue( target );
+						++checkSum;
+						fieldName = true;
+						continue;
+					}
+					else if ( value[ i ] == '}' && ( i == value.Length - 1 || !( displaying = i + 1 < value.Length && value[ i + 1 ] == '}' ) ) )
+					{
+						fieldName = false;
+						--checkSum;
+						if ( checkSum != 0 )
+							throw new ArgumentException( "\"}\" does not match for \"{\"" );
+
+						object? memberValue;
+						FieldInfo? fi = target.GetType().GetField( fieldNameBuilder.ToString() );
+						if ( fi != null )
+							memberValue = fi.GetValue( target );
 						else
-							throw new ArgumentException( "There is not such field or property \"" + fieldNameBuilder.ToString() + "\" at " + target.GetType().Name );
+						{
+							PropertyInfo? pi = target.GetType().GetProperty( fieldNameBuilder.ToString() );
+							if ( pi != null )
+								memberValue = pi.GetValue( target );
+							else
+								throw new ArgumentException( "There is not such field or property \"" + fieldNameBuilder.ToString() + "\" at " + target.GetType().Name );
+						}
+
+
+						resultBuilder.Append( memberValue );
+						fieldNameBuilder.Clear();
+						continue;
 					}
 
-
-					resultBuilder.Append( memberValue );
-					fieldNameBuilder.Clear();
-					continue;
-				}
-
-				if ( fieldName )
-				{
-					fieldNameBuilder.Append( value[ i ] );
+					if ( fieldName )
+					{
+						fieldNameBuilder.Append( value[ i ] );
+					}
+					else
+					{
+						resultBuilder.Append( value[ i ] );
+					}
 				}
 				else
 				{
 					resultBuilder.Append( value[ i ] );
+					displaying = false;
 				}
 			}
-			if (checkSum != 0)
+			if ( checkSum != 0 )
 				throw new ArgumentException( "\"}\" does not match for \"{\"" );
+			
 
+			
 			return resultBuilder.ToString();
 		}
 
