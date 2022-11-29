@@ -14,8 +14,8 @@ namespace StringFormatter
 	{
 		public static readonly StringFormatter Shared = new StringFormatter();
 
-		private ConcurrentDictionary<int, Func<object, string>> _cache = new();
-		private ConcurrentDictionary<int, Func<object, int, string>> _collectionCache = new();
+		private ConcurrentDictionary<string, Func<object, string>> _cache = new();
+		private ConcurrentDictionary<string, Func<object, int, string>> _collectionCache = new();
 		
 		public string Format( string value, object target )
 		{
@@ -32,6 +32,9 @@ namespace StringFormatter
 					if ( value[ i ] == '{' && ( i == value.Length - 1 || !( displaying = i + 1 < value.Length && value[ i + 1 ] == '{' ) ) )
 					{
 						++checkSum;
+						if (checkSum > 1)
+						throw new ArgumentException( "\"}\" does not match for \"{\"" );
+
 						isMemberName = true;
 						continue;
 					}
@@ -85,8 +88,9 @@ namespace StringFormatter
 
 		private string GetObjectSimpleMemberValue( string memberName, object target )
 		{
-		
-			int cacheKey = memberName.GetHashCode() + target.GetHashCode();
+
+			//int cacheKey = memberName.GetHashCode() + target.GetHashCode();
+			string cacheKey = memberName + "%" + target.GetType().ToString();
 			if ( _cache.ContainsKey( cacheKey ) ) 
 			{
 				return _cache[ cacheKey ].Invoke( target );
@@ -95,7 +99,8 @@ namespace StringFormatter
 			{
 				var obj = Expression.Parameter( typeof( object ) );
 				var fieldOrProp = Expression.PropertyOrField( Expression.TypeAs( obj, target.GetType() ), memberName );
-				Expression<Func<object, string>> expression = Expression.Lambda<Func<object, string>>( Expression.Call( fieldOrProp, "ToString", null, null ), new ParameterExpression[] { obj } );
+				Expression<Func<object, string>> expression = Expression.Lambda<Func<object, string>>
+									( Expression.Call( fieldOrProp, "ToString", null, null ), new ParameterExpression[] { obj } );
 				_cache.TryAdd( cacheKey, expression.Compile() );
 				return expression.Compile().Invoke(target);
 			}
@@ -104,7 +109,8 @@ namespace StringFormatter
 
 		private string GetObjectMemberCollectionValue(string memberName, int index, object target )
 		{
-			int cacheKey = memberName.GetHashCode() + target.GetHashCode() + index;
+			//int cacheKey = memberName.GetHashCode() + target.GetHashCode() + index;
+			string cacheKey = memberName + "%" + target.GetType().ToString() + "%" + index.ToString();
 			if ( _collectionCache.ContainsKey( cacheKey ) ) 
 			{
 				return _collectionCache[ cacheKey ].Invoke( target, index );
